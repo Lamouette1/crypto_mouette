@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Mouette // Secure Terminal</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --panel: #111;
+            --border: #333;
+            --accent: #00ff41; /* Cyber Green */
+            --accent-dim: rgba(0, 255, 65, 0.1);
+            --secondary: #00f3ff; /* Cyber Blue */
+            --error: #ff0055;
+            --text: #eee;
+            --mono: 'Courier New', Courier, monospace;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--mono);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        h1 {
+            color: var(--accent);
+            text-shadow: 0 0 10px var(--accent-dim);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            color: #777;
+            transition: 0.3s;
+        }
+        .tab:hover { color: var(--text); }
+        .tab.active {
+            color: var(--accent);
+            border-color: var(--border);
+            background: var(--panel);
+        }
+
+        /* PANELS */
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .panel.active { display: block; }
+        
+        /* FIX: Ensure panels in the results area are always visible */
+        #results .panel {
+            display: block;
+        }
+
+        /* FORMS */
+        .control-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: var(--secondary); font-size: 0.9em; }
+        
+        input, select, textarea {
+            background: #000;
+            border: 1px solid #444;
+            color: var(--accent);
+            font-family: var(--mono);
+            padding: 10px;
+            width: 100%;
+            font-size: 1em;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 5px var(--accent-dim);
+        }
+
+        button {
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: var(--mono);
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: 0.2s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent);
+        }
+
+        /* VISUALIZATION */
+        .bit-stream {
+            word-break: break-all;
+            color: #555;
+            margin-bottom: 20px;
+            font-size: 0.8em;
+        }
+        .bit-stream span.highlight { color: var(--text); }
+        .bit-stream span.checksum { color: var(--secondary); font-weight: bold; }
+
+        .lots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .lot-card {
+            background: #000;
+            border: 1px solid #333;
+            padding: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        .lot-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--secondary);
+        }
+        .lot-id { font-size: 0.7em; color: #555; }
+        .lot-bits { font-size: 0.8em; color: var(--secondary); margin: 5px 0; }
+        .lot-idx { font-size: 0.8em; color: #777; }
+        .lot-word { 
+            font-size: 1.1em; 
+            color: var(--accent); 
+            font-weight: bold; 
+            margin-top: 5px; 
+            text-transform: uppercase; 
+        }
+
+        /* KEYS AREA */
+        .keys-area {
+            margin-top: 30px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+        .key-block {
+            margin-bottom: 15px;
+        }
+        .key-val {
+            word-break: break-all;
+            color: #fff;
+            background: #000;
+            padding: 8px;
+            border: 1px dashed #444;
+            font-size: 0.9em;
+        }
+
+        /* DERIVATION */
+        .derivation-log {
+            margin-top: 20px;
+            background: #000;
+            padding: 10px;
+            border: 1px solid #333;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            border-bottom: 1px solid #222;
+            padding: 10px 0;
+            font-size: 0.85em;
+        }
+        .log-entry:last-child { border: none; }
+        .path-tag { color: var(--secondary); font-weight: bold; }
+
+        .hidden { display: none; }
+        .error { color: var(--error); margin-top: 10px; }
+        
+        .matrix-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            z-index: 9999;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+
+<div class="matrix-bg"></div>
+
+<div class="container">
+    <h1>Crypto Mouette <span style="font-size:0.5em; color:var(--secondary)">// WALLET GENERATOR</span></h1>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('gen')">GENERATE</div>
+        <div class="tab" onclick="switchTab('imp')">IMPORT</div>
+    </div>
+
+    <!-- GENERATE PANEL -->
+    <div id="panel-gen" class="panel active">
+        <div class="control-group">
+            <label>ENTROPY STRENGTH</label>
+            <select id="bits-select">
+                <option value="128">128 Bits (12 Words)</option>
+                <option value="160">160 Bits (15 Words)</option>
+                <option value="192">192 Bits (18 Words)</option>
+                <option value="224">224 Bits (21 Words)</option>
+                <option value="256">256 Bits (24 Words)</option>
+            </select>
+        </div>
+        <button onclick="generateWallet()">Initialize Sequence</button>
+    </div>
+
+    <!-- IMPORT PANEL -->
+    <div id="panel-imp" class="panel">
+        <div class="control-group">
+            <label>MNEMONIC PHRASE</label>
+            <textarea id="import-text" rows="3" placeholder="abandon abandon ..."></textarea>
+        </div>
+        <button onclick="importWallet()">Restore Wallet</button>
+    </div>
+
+    <div id="error-msg" class="error"></div>
+
+    <!-- RESULTS AREA -->
+    <div id="results" class="hidden">
+        
+        <!-- VISUALIZATION -->
+        <div class="panel" style="border-color: var(--secondary)">
+            <label>ENTROPY VISUALIZATION (BIP39)</label>
+            <div class="bit-stream">
+                <span id="vis-entropy"></span><span id="vis-checksum" class="checksum"></span>
+            </div>
+            <div class="lots-grid" id="lots-container"></div>
+            
+            <div style="margin-top: 20px; text-align: center;">
+                <label>FULL MNEMONIC</label>
+                <div id="final-mnemonic" style="color:var(--accent); font-size: 1.2em; padding: 10px; border: 1px solid var(--accent);"></div>
+            </div>
+        </div>
+
+        <!-- MASTER KEYS -->
+        <div class="panel">
+            <label>ROOT KEYS</label>
+            <div class="key-block">
+                <label>BIP39 Seed (Hex)</label>
+                <div class="key-val" id="res-seed"></div>
+            </div>
+            <div class="key-block">
+                <label>Master Private Key</label>
+                <div class="key-val" id="res-mpriv"></div>
+            </div>
+            <div class="key-block">
+                <label>Master Public Key</label>
+                <div class="key-val" id="res-mpub"></div>
+            </div>
+            <div class="key-block">
+                <label>Chain Code</label>
+                <div class="key-val" id="res-chain"></div>
+            </div>
+        </div>
+
+        <!-- DERIVATION TOOL -->
+        <div class="panel">
+            <label>KEY DERIVATION</label>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="derive-path" placeholder="Path (e.g. m/0'/0/1)" value="m/0">
+                <button onclick="deriveKey()" style="margin:0;">Derive</button>
+            </div>
+            
+            <div class="derivation-log" id="deriv-log">
+                <!-- Results go here -->
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let currentMasterPriv = null;
+    let currentMasterChain = null;
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        
+        if(tab === 'gen') {
+            document.querySelector('.tab:first-child').classList.add('active');
+            document.getElementById('panel-gen').classList.add('active');
+        } else {
+            document.querySelector('.tab:last-child').classList.add('active');
+            document.getElementById('panel-imp').classList.add('active');
+        }
+        // Keep results visible if they exist
+        if(!document.getElementById('results').classList.contains('hidden')) {
+           // Maybe clear results on tab switch? No, keep context.
+        }
+    }
+
+    async function generateWallet() {
+        const bits = document.getElementById('bits-select').value;
+        try {
+            console.log("Sending request...");
+            const res = await fetch('/api/generate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({bits: bits})
+            });
+            
+            if (!res.ok) {
+                throw new Error(`Server returned ${res.status} ${res.statusText}`);
+            }
+
+            const data = await res.json();
+            console.log("Received data:", data);
+            handleResponse(data);
+        } catch(e) {
+            console.error("Generation Error:", e);
+            alert("Error: " + e.message);
+            showError("Connection Failed: " + e.message);
+        }
+    }
+
+    async function importWallet() {
+        const text = document.getElementById('import-text').value;
+        try {
+            const res = await fetch('/api/import', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({mnemonic: text})
+            });
+            const data = await res.json();
+            handleResponse(data);
+        } catch(e) {
+            alert("Error: " + e.message);
+            showError("Connection Failed");
+        }
+    }
+
+    function handleResponse(data) {
+        try {
+            const errDiv = document.getElementById('error-msg');
+            errDiv.innerText = '';
+            
+            if(!data.success) {
+                showError(data.error);
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.classList.remove('hidden');
+            resultsDiv.style.display = 'block'; // Force display
+
+            // Render Viz
+            if (data.details) {
+                document.getElementById('vis-entropy').innerText = data.details.entropy_bits || 'N/A';
+                document.getElementById('vis-checksum').innerText = data.details.checksum_bits || 'N/A';
+                document.getElementById('final-mnemonic').innerText = data.details.mnemonic || 'N/A';
+
+                const lotsContainer = document.getElementById('lots-container');
+                lotsContainer.innerHTML = '';
+                if (data.details.lots) {
+                    data.details.lots.forEach(lot => {
+                        const el = document.createElement('div');
+                        el.className = 'lot-card';
+                        el.innerHTML = `
+                            <div class="lot-id">#${lot.id}</div>
+                            <div class="lot-bits">${lot.bits}</div>
+                            <div class="lot-idx">IDX: ${lot.index}</div>
+                            <div class="lot-word">${lot.word}</div>
+                        `;
+                        lotsContainer.appendChild(el);
+                    });
+                }
+            }
+
+            // Keys
+            if (data.keys) {
+                document.getElementById('res-seed').innerText = data.keys.seed_hex || '';
+                document.getElementById('res-mpriv').innerText = data.keys.master_private || '';
+                document.getElementById('res-mpub').innerText = data.keys.master_public || '';
+                document.getElementById('res-chain').innerText = data.keys.master_chain || '';
+
+                // Store for derivation
+                currentMasterPriv = data.keys.master_private;
+                currentMasterChain = data.keys.master_chain;
+            }
+            
+            // Clear log
+            document.getElementById('deriv-log').innerHTML = '<div style="color:#555; text-align:center;">--- Ready to Derive ---</div>';
+
+            // Scroll to results
+            resultsDiv.scrollIntoView({behavior: 'smooth'});
+            
+        } catch (e) {
+            console.error("Rendering Error:", e);
+            alert("Error updating UI: " + e.message);
+        }
+    }
+
+    async function deriveKey() {
+        if(!currentMasterPriv) {
+            showError("Generate or Import a wallet first.");
+            return;
+        }
+        
+        const path = document.getElementById('derive-path').value;
+        
+        try {
+            const res = await fetch('/api/derive', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    master_private: currentMasterPriv,
+                    master_chain: currentMasterChain,
+                    path: path
+                })
+            });
+            const data = await res.json();
+            
+            if(!data.success) {
+                showError(data.error);
+                return;
+            }
+            
+            // Add to log
+            const log = document.getElementById('deriv-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <div><span class="path-tag">${data.path}</span></div>
+                <div style="color:#aaa;">Pub: ${data.public_key}</div>
+                <div style="color:#555; font-size:0.8em;">Priv: ${data.private_key}</div>
+            `;
+            log.prepend(entry);
+            
+        } catch(e) {
+            showError("Derivation Failed");
+        }
+    }
+
+    function showError(msg) {
+        document.getElementById('error-msg').innerText = "ERROR: " + msg;
+    }
+</script>
+
+</body>
+</html>
