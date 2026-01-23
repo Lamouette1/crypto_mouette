@@ -68,6 +68,3 @@ You can verify the outputs of this tool by using [Ian Coleman's BIP39 Tool](http
 - **Mnemonic**: `abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about`
 - **Seed**: `c55257c0d129294011c6f8ef2f1341c7...`
 - **Master Private Key**: `e8f32e723decf4051aefac8e2c93c9c5b214313817cdb01f1494b917c8436b35`
-
----
-*Created for the Cryptolamouette Project.*
